@@ -1,0 +1,20 @@
+```{r}
+SOUTH PARK ANALYSIS
+
+I hope to go through a dataset of South Park dialogues, covering seasons 1 - 19, to find out answers for the following questions :
+
+1. How have the sentiments of characters changed over seasons in South Park?
+
+2. What are the typical words that each character speaks?
+
+3. What topics are discussed in South Park?
+
+4. How have the topics discussed on South Park changed over 19 years?
+
+5. Which characters speak together / in sequence?
+
+6. Who is the most verbose character in South Park?
+
+
+```
+
