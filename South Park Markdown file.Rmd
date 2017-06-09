@@ -1,0 +1,122 @@
+---
+title: "South Park Code"
+output: html_document
+---
+
+Loading libraries
+
+```{r}
+library(tidyr)
+library(tidytext)
+library(tidyverse)
+library(ggplot2)
+library(wordcloud)
+library(purrr)
+library(tm)
+```
+
+Make copy of original dataset(SP) and introduce ID column.
+
+```{r}
+text <- SP %>% select(Season,Episode,Character,Line)
+text$ID <- seq.int(nrow(text))
+text <- text[,c(5,1,2,3,4)]
+View(text)
+```
+
+
+Tidy_lines2 is an important datset as it contains all words (excluding stop words) spoken by characters and includes season and episode column as well. Majority of the future data sets are built using this particular dataset
+
+```{r}
+tidy_lines2 <- text %>% unnest_tokens(word, Line) %>% anti_join(stop_words)
+
+tidy_lines2 %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100)) ### wordcloud
+
+
+```
+
+
+Separate lines into words and get frequency of the common words (excluding stop words) used overall and at character level.
+
+```{r}
+
+View(text %>% count(Character,sort = TRUE)) ## line count by character
+
+View(abc <- tidy_lines2 %>% count(Character,sort = TRUE)) # word count of characters 
+View(filter(abc,Character == "Stan"))  # we can filter word count for each character 
+top_words <- head(abc,20) ## top 20 characters based on word count
+```
+
+
+
+Filter data for only top 20 speakers based on word count.
+
+```{r}
+View(res1 <- inner_join(top_words,tidy_lines2))  ## This dataset contains all words for top 20 speakers based on word count
+res2 <- res1 %>% select(Character,Season,word) ## select only relevant columns
+
+
+View(res2 %>% count(Season,Character,sort = TRUE)) ## word count of character by season
+res2 %>% ggplot(aes(Season, group = Character)) + geom_bar() ## graph giving word count by season
+ggplot(res2) + aes(Character,..count..) + geom_bar() # plot of top 20 characters and their word count
+
+## gives a graph with word count across seasons for top 20 characters
+b2 <- (res2 %>% count(Character,Season)) 
+p <- ggplot(b2,aes(Season,n)) + geom_point()
+p + facet_grid(.~Character) 
+
+```
+
+
+
+SENTIMENT ANALYSIS. BING LEXICON
+
+```{r}
+tidy_SP_count <- tidy_lines2 %>% count(word, sort = TRUE)
+
+SP_net_sentiment_bing <- tidy_SP_count %>%
+  inner_join(get_sentiments("bing")) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+sum(SP_net_sentiment_bing$sentiment)
+
+sentiment_index_top20_bing <- inner_join(res1,SP_net_sentiment_bing,by = "word")
+
+sent_all <- (sentiment_index_top20_bing %>% group_by(Season)) ## sentiment and season in one table. bing lexicon
+
+sentiment_season <- sentiment_index_top20_bing %>%
+  group_by(Season) %>%
+  summarize(mean_sum = sum(sentiment, na.rm = TRUE)) ## this gives group by of sentiments at season level
+
+
+ggplot(sentiment_season,aes(Season,mean_sum)) + geom_col(alpha = .4)
+
+
+u <- ggplot(sentiment_index_top20_bing,aes(Season,sentiment,color = Character)) + geom_point(alpha = .4)
+u + facet_wrap(~Character)
+
+```
+
+
+
+NESTED DATA
+```{r}
+
+nest_char <- tidy_lines2 %>% 
+             group_by(Character) %>%
+             nest()
+             
+View(nest_char)
+
+
+wordcl_test <- function(df){wordcloud(word)}
+wordcl_all <- map(nest_char$data,wordcl_test)
+
+
+```
+
+
+
