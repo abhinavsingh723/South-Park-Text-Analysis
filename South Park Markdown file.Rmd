@@ -6,18 +6,19 @@ output: html_document
 Loading libraries
 
 ```{r}
-library(tidyr)
+# library(tidyr)
 library(tidytext)
 library(tidyverse)
-library(ggplot2)
+# library(ggplot2)
 library(wordcloud)
-library(purrr)
+# library(purrr)
 library(tm)
 ```
 
 Make copy of original dataset(SP) and introduce ID column.
 
 ```{r}
+SP <- read.csv("South Park data.csv", stringsAsFactors = FALSE)
 text <- SP %>% select(Season,Episode,Character,Line)
 text$ID <- seq.int(nrow(text))
 text <- text[,c(5,1,2,3,4)]
@@ -105,16 +106,38 @@ u + facet_wrap(~Character)
 NESTED DATA
 ```{r}
 
-nest_char <- tidy_lines2 %>% 
-             group_by(Character) %>%
-             nest()
+# Top 5 Characters
+top_char <- tidy_lines2 %>% 
+            count(Character,sort = TRUE) %>%
+            top_n(5)
+
+# Select lines for top characters
+tidy_lines_top <- tidy_lines2 %>%
+                  filter(Character %in% top_char$Character)
+
+# Create a nested data frame
+nest_char <- tidy_lines_top %>% 
+             nest(-Character)
              
-View(nest_char)
+nest_char
 
+# Create Wordcloud Function 
+wordcl <- function(df){
+    df %>%
+      count(word) %>%
+      with(wordcloud(word, n, min.freq = 50, max.words = 100))
+  }
 
-wordcl_test <- function(df){wordcloud(word)}
-wordcl_all <- map(nest_char$data,wordcl_test)
+# Accessing First Character in nested df
+data1 <- nest_char$data[[1]]
+wordcl(data1)
 
+# Accessing First Two characters
+data2 <- nest_char$data[1:2]
+map(data2,wordcl)
+
+# Running on all the five characters
+wordcl_all <- map(nest_char$data, wordcl)
 
 ```
 
